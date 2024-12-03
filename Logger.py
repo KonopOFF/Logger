@@ -5,6 +5,7 @@ import datetime
 import requests
 from maidenhead import to_location
 from geopy.distance import geodesic
+from qrz import QRZ
 
 # Zmienna globalna dla Twojego lokatora
 my_grid_square = "JO90qk"
@@ -110,16 +111,13 @@ def export_adif():
 
 # Funkcja do pobierania danych z QRZ
 def fetch_qrz_data(callsign):
-    # Wprowadź swój klucz API QRZ tutaj
-    api_key = "TWÓJ_KLUCZ_API_QRZ"
-    url = f"https://api.qrz.com/xml?key={api_key}&callsign={callsign}"
-    
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
+    qrz = QRZ(cfg='./settings.cfg')
+    result = qrz.callsign(callsign)
+    print(result)
+    if result:
         return {
-            "name": data.get("name"),
-            "country": data.get("country")
+            "name": result.get('fname') + " " + result.get('name'),
+            "country": result.get('country'),
         }
     else:
         messagebox.showerror("Błąd", "Nie udało się pobrać danych z QRZ")
@@ -142,7 +140,11 @@ def auto_fill_qrz():
 # Funkcja do dodawania wpisów
 def add_entry():
     their_grid = grid_square_entry.get()
-    distance = calculate_distance(my_grid_square, their_grid)
+    if their_grid:
+        distance = calculate_distance(my_grid_square, their_grid)
+    else:
+        distance = None  # Można też ustawić 0, jeśli to bardziej sensowne
+
     
     entry_data = (
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -187,12 +189,16 @@ def delete_entry():
 def clear_entries():
     callsign_entry.delete(0, tk.END)
     rst_sent_entry.delete(0, tk.END)
+    rst_sent_entry.insert(0, "59")  # Ustawienie domyślnego 59
     rst_received_entry.delete(0, tk.END)
+    rst_received_entry.insert(0, "59")  # Ustawienie domyślnego 59
     power_entry.delete(0, tk.END)
     grid_square_entry.delete(0, tk.END)
     name_entry.delete(0, tk.END)
     country_entry.delete(0, tk.END)
     comment_entry.delete(0, tk.END)
+
+
 
 # Aktualizacja tabeli
 def update_table():
