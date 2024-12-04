@@ -120,29 +120,41 @@ def export_adif():
 
         # Zapis danych QSO
         for row in rows:
-            qso_date = row[1]  # Data QSO
-            callsign = row[2]  # Znak wywoławczy
-            rst_sent = row[3]
-            rst_rcvd = row[4]
-            band = row[5]  # Pasmo
-            mode = row[6]
-            tx_pwr = row[7]  #moc
-            grid_square = row[8]  # Lokator grid
-            distance = row[9]
-            name = row[10]
-              # Dystans
-            comment = row[12]  # Komentarz
-            
-            # Tworzenie rekordu QSO w formacie ADIF
-            f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
-            f.write(f"<CALL:{len(callsign)}>{callsign} ")
-            f.write(f"<BAND:{len(band)}>{band} ")
-            f.write(f"<MODE:{len(mode)}>{mode} ")
-            f.write(f"<GRIDSQUARE:{len(grid_square)}>{grid_square} ")
-            f.write(f"<DISTANCE:{len(str(distance))}>{distance} km ")
-            f.write(f"<COMMENT:{len(comment)}>{comment} ")
-            f.write("<EOR>\n")  # Zakończenie rekordu QSO
-        
+            try:
+                qso_date = row[1] if row[1] else ""
+                callsign = row[2] if row[2] else ""
+                RST_SENT = row[3] if row[3] else ""
+                RST_RCVD = row[4] if row[4] else ""
+                band = row[5] if row[5] else ""
+                mode = row[6] if row[6] else ""
+                tx_pwr = row[7] if row[7] else ""
+                grid_square = row[8] if row[8] else ""
+                distance = row[9] if row[9] else "0"
+                name = row[10] if row[10] else ""
+                comment = row[12] if row[12] else ""
+
+                # Tworzenie rekordu QSO w formacie ADIF
+                f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
+                f.write(f"<CALL:{len(callsign)}>{callsign} ")
+                if RST_SENT:
+                    f.write(f"<RST_SENT:{len(RST_SENT)}>{RST_SENT} ")
+                if RST_RCVD:
+                    f.write(f"<RST_RCVD:{len(RST_RCVD)}>{RST_RCVD} ")
+                f.write(f"<BAND:{len(band)}>{band} ")
+                f.write(f"<MODE:{len(mode)}>{mode} ")
+                if tx_pwr:
+                    f.write(f"<TX_PWR:{len(tx_pwr)}>{tx_pwr}W ")
+                if grid_square:
+                    f.write(f"<GRIDSQUARE:{len(grid_square)}>{grid_square} ")
+                if distance != "0":
+                    f.write(f"<DISTANCE:{len(str(distance))}>{distance} km ")
+                if name:
+                    f.write(f"<NAME:{len(name)}>{name} ")
+                if comment:
+                    f.write(f"<COMMENT:{len(comment)}>{comment} ")
+                f.write("<EOR>\n")
+            except IndexError as e:
+                print(f"Błąd w wierszu: {row} - {e}")
     # Powiadomienie o sukcesie
     messagebox.showinfo("Eksport ADIF", f"Pomyślnie wyeksportowano do pliku: {adif_file}")
 
