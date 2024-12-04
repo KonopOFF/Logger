@@ -6,10 +6,7 @@ import requests
 from maidenhead import to_location
 from geopy.distance import geodesic
 from qrz import QRZ
-<<<<<<< HEAD
 import time
-=======
->>>>>>> faca91465eaca4e5fe16a896e42538d64cafd592
 
 # Zmienna globalna dla Twojego lokatora
 my_grid_square = ""
@@ -154,15 +151,9 @@ import tkinter as tk
 def fetch_qrz_data(callsign):
     qrz = QRZ(cfg='./settings.cfg')
     result = qrz.callsign(callsign)
-<<<<<<< HEAD
     print("QRZ result:", result)  # Logowanie wyniku z QRZ
     if result:
         data = {
-=======
-    print(result)
-    if result:
-        return {
->>>>>>> faca91465eaca4e5fe16a896e42538d64cafd592
             "name": result.get('fname') + " " + result.get('name'),
             "country": result.get('country'),
         }
@@ -330,10 +321,6 @@ def clear_entries():
     rst_sent_entry.insert(0, "59")  # Ustawienie domyślnego 59
     rst_received_entry.delete(0, tk.END)
     rst_received_entry.insert(0, "59")  # Ustawienie domyślnego 59
-<<<<<<< HEAD
-=======
-    power_entry.delete(0, tk.END)
->>>>>>> faca91465eaca4e5fe16a896e42538d64cafd592
     grid_square_entry.delete(0, tk.END)
     name_entry.delete(0, tk.END)
     country_entry.delete(0, tk.END)
