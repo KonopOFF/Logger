@@ -132,6 +132,7 @@ def export_adif():
                 distance = row[9] if row[9] else "0"
                 name = row[10] if row[10] else ""
                 comment = row[12] if row[12] else ""
+                country = row[11] if row[11] else ""
 
                 # Tworzenie rekordu QSO w formacie ADIF
                 f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
@@ -152,6 +153,8 @@ def export_adif():
                     f.write(f"<NAME:{len(name)}>{name} ")
                 if comment:
                     f.write(f"<COMMENT:{len(comment)}>{comment} ")
+                if country:
+                    f.write(f"<COUNTRY:{len(country)}>{country}")
                 f.write("<EOR>\n")
             except IndexError as e:
                 print(f"Błąd w wierszu: {row} - {e}")
