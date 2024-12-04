@@ -362,6 +362,9 @@ settings_menu = tk.Menu(menu, tearoff=0)
 menu.add_cascade(label="Menu", menu=settings_menu)
 settings_menu.add_command(label="Konfiguracja", command=change_grid_square)
 
+# Przeniesienie przycisku eksportowania do menu
+settings_menu.add_command(label="Eksportuj ADIF", command=export_adif)
+
 # Ustawienie ciemnego motywu
 set_dark_mode(root)
 
@@ -420,7 +423,6 @@ comment_entry = tk.Entry(form_frame)
 comment_entry.grid(row=3, column=5)
 
 tk.Button(form_frame, text="Dodaj QSO", command=add_entry).grid(row=4, column=0, columnspan=2, pady=10)
-tk.Button(form_frame, text="Eksportuj ADIF", command=export_adif).grid(row=4, column=2, columnspan=2, pady=10)
 tk.Button(form_frame, text="Auto-wypełnianie z QRZ", command=auto_fill_qrz).grid(row=4, column=4, columnspan=2, pady=10)
 tk.Button(form_frame, text="Usuń QSO", command=delete_entry).grid(row=4, column=6, columnspan=2, pady=10)
 
