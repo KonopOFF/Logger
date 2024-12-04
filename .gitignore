@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 settings.cfg
 *.db
+*.adi
 # C extensions
 *.so
 

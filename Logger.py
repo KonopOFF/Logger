@@ -122,10 +122,15 @@ def export_adif():
         for row in rows:
             qso_date = row[1]  # Data QSO
             callsign = row[2]  # Znak wywoławczy
-            band = row[4]  # Pasmo
-            mode = row[5]  # Tryb (np. SSB, CW)
+            rst_sent = row[3]
+            rst_rcvd = row[4]
+            band = row[5]  # Pasmo
+            mode = row[6]
+            tx_pwr = row[7]  #moc
             grid_square = row[8]  # Lokator grid
-            distance = row[9]  # Dystans
+            distance = row[9]
+            name = row[10]
+              # Dystans
             comment = row[12]  # Komentarz
             
             # Tworzenie rekordu QSO w formacie ADIF
