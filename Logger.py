@@ -136,7 +136,7 @@ def export_adif():
             name = row[10]
               # Dystans
             comment = row[12]  # Komentarz
-            
+            country = row[11]
             # Tworzenie rekordu QSO w formacie ADIF
             f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
             f.write(f"<CALL:{len(callsign)}>{callsign} ")
