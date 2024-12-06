@@ -5,6 +5,12 @@ from maidenhead import to_location
 from geopy.distance import geodesic
 #from qrz import QRZ
 
+from qrz import QRZ
+import time
+import math
+
+
+
 
 # Zmienna globalna dla Twojego lokatora
 my_grid_square = ""
@@ -68,44 +74,29 @@ def export_adif():
 
         # Zapis danych QSO
         for row in rows:
-            try:
-                qso_date = row[1] if row[1] else ""
-                callsign = row[2] if row[2] else ""
-                RST_SENT = row[3] if row[3] else ""
-                RST_RCVD = row[4] if row[4] else ""
-                band = row[5] if row[5] else ""
-                mode = row[6] if row[6] else ""
-                tx_pwr = row[7] if row[7] else ""
-                grid_square = row[8] if row[8] else ""
-                distance = row[9] if row[9] else "0"
-                name = row[10] if row[10] else ""
-                comment = row[12] if row[12] else ""
-                country = row[11] if row[11] else ""
-
-                # Tworzenie rekordu QSO w formacie ADIF
-                f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
-                f.write(f"<CALL:{len(callsign)}>{callsign} ")
-                if RST_SENT:
-                    f.write(f"<RST_SENT:{len(RST_SENT)}>{RST_SENT} ")
-                if RST_RCVD:
-                    f.write(f"<RST_RCVD:{len(RST_RCVD)}>{RST_RCVD} ")
-                f.write(f"<BAND:{len(band)}>{band} ")
-                f.write(f"<MODE:{len(mode)}>{mode} ")
-                if tx_pwr:
-                    f.write(f"<TX_PWR:{len(tx_pwr)}>{tx_pwr}W ")
-                if grid_square:
-                    f.write(f"<GRIDSQUARE:{len(grid_square)}>{grid_square} ")
-                if distance != "0":
-                    f.write(f"<DISTANCE:{len(str(distance))}>{distance} km ")
-                if name:
-                    f.write(f"<NAME:{len(name)}>{name} ")
-                if comment:
-                    f.write(f"<COMMENT:{len(comment)}>{comment} ")
-                if country:
-                    f.write(f"<COUNTRY:{len(country)}>{country}")
-                f.write("<EOR>\n")
-            except IndexError as e:
-                print(f"Błąd w wierszu: {row} - {e}")
+            qso_date = row[1]  # Data QSO
+            callsign = row[2]  # Znak wywoławczy
+            rst_sent = row[3]
+            rst_rcvd = row[4]
+            band = row[5]  # Pasmo
+            mode = row[6]
+            tx_pwr = row[7]  #moc
+            grid_square = row[8]  # Lokator grid
+            distance = row[9]
+            name = row[10]
+              # Dystans
+            comment = row[12]  # Komentarz
+            country = row[11]
+            # Tworzenie rekordu QSO w formacie ADIF
+            f.write(f"<QSO_DATE:{len(qso_date)}>{qso_date} ")
+            f.write(f"<CALL:{len(callsign)}>{callsign} ")
+            f.write(f"<BAND:{len(band)}>{band} ")
+            f.write(f"<MODE:{len(mode)}>{mode} ")
+            f.write(f"<GRIDSQUARE:{len(grid_square)}>{grid_square} ")
+            f.write(f"<DISTANCE:{len(str(distance))}>{distance} km ")
+            f.write(f"<COMMENT:{len(comment)}>{comment} ")
+            f.write("<EOR>\n")  # Zakończenie rekordu QSO
+        
     # Powiadomienie o sukcesie
     messagebox.showinfo("Eksport ADIF", f"Pomyślnie wyeksportowano do pliku: {adif_file}")
 
@@ -197,7 +188,6 @@ def add_entry():
     else:
         distance = None  # Można też ustawić 0, jeśli to bardziej sensowne
 
-    
     entry_data = (
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         callsign_entry.get(),
@@ -215,7 +205,18 @@ def add_entry():
     add_to_database(entry_data)
     update_table()
     clear_entries()
-    messagebox.showinfo("Dodano", "QSO zostało dodane!")
+    show_temporary_message("QSO zostało dodane!", 3000)
+
+# Funkcja do wyświetlania tymczasowego komunikatu
+def show_temporary_message(message, duration):
+    # Tworzymy etykietę nad tabelką
+    message_label = tk.Label(root, text=message, fg="green", font=("Arial", 12))
+    message_label.pack(pady=5)  # Umieszczamy ją z niewielkim odstępem nad tabelką
+
+    # Usunięcie komunikatu po upływie `duration` milisekund
+    root.after(duration, message_label.destroy)
+
+
 
 # Funkcja do załadowania danych z pliku konfiguracyjnego
 def load_config():
@@ -266,6 +267,24 @@ def change_grid_square():
     tk.Button(config_window, text="Zapisz", command=save_config).grid(row=2, column=0, columnspan=2, pady=10)
     
 
+def distance_between_grids(grid1, grid2):
+    def grid_to_latlon(grid):
+        grid = grid.upper()
+        lon = (ord(grid[0]) - ord('A')) * 20 - 180 + (ord(grid[2]) - ord('0')) * 2 + (ord(grid[4]) - ord('A')) / 12
+        lat = (ord(grid[1]) - ord('A')) * 10 - 90 + (ord(grid[3]) - ord('0')) + (ord(grid[5]) - ord('A')) / 24
+        return lat, lon
+
+    lat1, lon1 = grid_to_latlon(grid1)
+    lat2, lon2 = grid_to_latlon(grid2)
+
+    R = 6371  # Promień Ziemi w kilometrach
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance = R * c
+
+    return distance
 
 
 # Funkcja do usuwania wpisów
@@ -301,7 +320,7 @@ def update_utc_clock(label):
 
 # GUI aplikacji
 root = tk.Tk()
-root.title("Logger Krótkofalarski")
+root.title("LogBook SP9OFF&SQ4UVB")
 
 load_config()
 
@@ -323,55 +342,67 @@ set_dark_mode(root)
 form_frame = tk.Frame(root, padx=10, pady=10)
 form_frame.pack(fill=tk.X)
 
-# Etykieta do wyświetlania czasu UTC
-utc_label = tk.Label(root, font=("Helvetica", 14), anchor="nw")  # Etykieta w lewym górnym rogu
-utc_label.pack(anchor="nw", padx=10, pady=10)
+# Ramka na zegar UTC
+utc_frame = tk.Frame(root, padx=10, pady=5, relief="solid", bd=1)  # Ramka z cieniem wokół zegara
+utc_frame.pack(anchor="nw", padx=10, pady=10)
+
+# Etykieta z napisem "UTC"
+utc_label_text = tk.Label(utc_frame, text="UTC:", font=("Helvetica", 14), anchor="w")
+utc_label_text.pack(side=tk.LEFT, padx=5)
+
+# Etykieta zegara
+utc_label = tk.Label(utc_frame, font=("Helvetica", 14), anchor="w")  # Etykieta zegara w ramce
+utc_label.pack(side=tk.LEFT)
 
 # Uruchomienie zegara UTC
 update_utc_clock(utc_label)
 
+# Zwiększenie szerokości i wysokości pól formularza oraz ustawienie odstępów
+entry_width = 30  # Nowa szerokość pól wejściowych (1,5x)
+entry_font = ("Helvetica", 15)  # Zwiększona czcionka (dla większej wysokości)
+spacing = 10  # Odstęp między polami (10px)
 
-tk.Label(form_frame, text="Znak wywoławczy").grid(row=0, column=0)
-callsign_entry = tk.Entry(form_frame)
-callsign_entry.grid(row=0, column=1)
+tk.Label(form_frame, text="Znak wywoławczy").grid(row=0, column=0, padx=spacing, pady=spacing)
+callsign_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+callsign_entry.grid(row=0, column=1, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="RST wysłane").grid(row=1, column=0)
-rst_sent_entry = tk.Entry(form_frame)
-rst_sent_entry.grid(row=1, column=1)
+tk.Label(form_frame, text="RST wysłane").grid(row=1, column=0, padx=spacing, pady=spacing)
+rst_sent_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+rst_sent_entry.grid(row=1, column=1, padx=spacing, pady=spacing)
 rst_sent_entry.insert(0, "59")  # Domyślna wartość
 
-tk.Label(form_frame, text="RST odebrane").grid(row=2, column=0)
-rst_received_entry = tk.Entry(form_frame)
-rst_received_entry.grid(row=2, column=1)
+tk.Label(form_frame, text="RST odebrane").grid(row=2, column=0, padx=spacing, pady=spacing)
+rst_received_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+rst_received_entry.grid(row=2, column=1, padx=spacing, pady=spacing)
 rst_received_entry.insert(0, "59")  # Domyślna wartość
 
-tk.Label(form_frame, text="Pasmo").grid(row=0, column=2)
-band_combobox = ttk.Combobox(form_frame, values=["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "4m", "2m", "70cm"], state="readonly")
-band_combobox.grid(row=0, column=3)
+tk.Label(form_frame, text="Pasmo").grid(row=0, column=2, padx=spacing, pady=spacing)
+band_combobox = ttk.Combobox(form_frame, values=["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "4m", "2m", "70cm"], state="readonly", width=entry_width, font=entry_font)
+band_combobox.grid(row=0, column=3, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Tryb").grid(row=1, column=2)
-mode_combobox = ttk.Combobox(form_frame, values=["SSB", "CW", "DIGI", "FM"], state="readonly")
-mode_combobox.grid(row=1, column=3)
+tk.Label(form_frame, text="Tryb").grid(row=1, column=2, padx=spacing, pady=spacing)
+mode_combobox = ttk.Combobox(form_frame, values=["SSB", "CW", "DIGI", "FM"], state="readonly", width=entry_width, font=entry_font)
+mode_combobox.grid(row=1, column=3, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Moc (W)").grid(row=2, column=2)
-power_entry = tk.Entry(form_frame)
-power_entry.grid(row=2, column=3)
+tk.Label(form_frame, text="Moc (W)").grid(row=2, column=2, padx=spacing, pady=spacing)
+power_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+power_entry.grid(row=2, column=3, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Imię").grid(row=0, column=4)
-name_entry = tk.Entry(form_frame)
-name_entry.grid(row=0, column=5)
+tk.Label(form_frame, text="Imię").grid(row=0, column=4, padx=spacing, pady=spacing)
+name_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+name_entry.grid(row=0, column=5, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Kraj").grid(row=1, column=4)
-country_entry = tk.Entry(form_frame)
-country_entry.grid(row=1, column=5)
+tk.Label(form_frame, text="Kraj").grid(row=1, column=4, padx=spacing, pady=spacing)
+country_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+country_entry.grid(row=1, column=5, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Grid Square").grid(row=2, column=4)
-grid_square_entry = tk.Entry(form_frame)
-grid_square_entry.grid(row=2, column=5)
+tk.Label(form_frame, text="Grid Square").grid(row=2, column=4, padx=spacing, pady=spacing)
+grid_square_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+grid_square_entry.grid(row=2, column=5, padx=spacing, pady=spacing)
 
-tk.Label(form_frame, text="Komentarz").grid(row=3, column=4)
-comment_entry = tk.Entry(form_frame)
-comment_entry.grid(row=3, column=5)
+tk.Label(form_frame, text="Komentarz").grid(row=3, column=4, padx=spacing, pady=spacing)
+comment_entry = tk.Entry(form_frame, width=entry_width, font=entry_font)
+comment_entry.grid(row=3, column=5, padx=spacing, pady=spacing)
 
 tk.Button(form_frame, text="Dodaj QSO", command=add_entry).grid(row=4, column=0, columnspan=2, pady=10)
 #tk.Button(form_frame, text="Auto-wypełnianie z QRZ", command=auto_fill_qrz).grid(row=4, column=4, columnspan=2, pady=10)
@@ -381,16 +412,50 @@ tk.Button(form_frame, text="Usuń QSO", command=delete_entry).grid(row=4, column
 table_frame = tk.Frame(root, padx=10, pady=10)
 table_frame.pack(fill=tk.BOTH, expand=True)
 
+# Dodanie przycisku "Usuń QSO" do lewego górnego rogu nad tabelą
+delete_button_frame = tk.Frame(table_frame)
+delete_button_frame.pack(fill=tk.X, pady=10)
+
+tk.Button(delete_button_frame, text="Usuń QSO", command=delete_entry).pack(side=tk.RIGHT)
+
+# Tabela
 columns = ("date_time", "callsign", "rst_sent", "rst_received", "band", "mode", "power", "grid_square", "distance", "name", "country", "comment")
 table = ttk.Treeview(table_frame, columns=columns, show="headings")
-table.pack(fill=tk.BOTH, expand=True)
 
+# Ustawienia dla oddzielenia kolumn
+style = ttk.Style()
+style.configure("Treeview.Heading", padding=[5, 10])  # Ustawienie paddingu w nagłówkach
+style.configure("Treeview", rowheight=30)  # Zwiększenie wysokości wiersza
+
+# Dodanie cienkich linii oddzielających kolumny przez kolorowanie tła i obramowań
+style.configure("Treeview", 
+                background="#2e2e2e",  # Tło tabeli (ciemne)
+                foreground="white",  # Kolor tekstu (biały)
+                fieldbackground="#2e2e2e",  # Tło pól komórek (ciemne)
+                borderwidth=5)  # Dodanie cienkich obramowań dla komórek
+
+style.configure("Treeview.Heading",
+                background="#444444",  # Ciemne tło nagłówków
+                foreground="white",  # Kolor tekstu nagłówków
+                font=("Helvetica", 10, "bold"),
+                padding=[10, 5])
+
+# Dodatkowe ustawienia, które mogą pomóc uzyskać wrażenie oddzielonych kolumn
+style.map("Treeview",
+          background=[('selected', '#555555')],  # Kolor zaznaczonego wiersza
+          foreground=[('selected', 'white')])
+
+# Nagłówki tabeli
 for col in columns:
     table.heading(col, text=col.replace("_", " ").capitalize())
-    table.column(col, width=100)
+    table.column(col, width=120, anchor="center", minwidth=80)  # Szerokość kolumn
+
+table.pack(fill=tk.BOTH, expand=True)
 
 # Inicjalizacja
 db.initialize_database()
 db.update_table()
 
 root.mainloop()
+
+
