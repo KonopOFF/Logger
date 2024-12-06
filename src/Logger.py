@@ -1,12 +1,10 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
-import sqlite3
-import datetime
-import requests
+import sqlite3, datetime, time, db
 from maidenhead import to_location
 from geopy.distance import geodesic
-from qrz import QRZ
-import time
+#from qrz import QRZ
+
 
 # Zmienna globalna dla Twojego lokatora
 my_grid_square = ""
@@ -31,52 +29,8 @@ def set_dark_mode(widget):
     style.configure('Treeview.Heading', background='#4E4E4E', foreground='#FFFFFF')
 
     
-# Tworzenie bazy danych SQLite
-def initialize_database():
-    conn = sqlite3.connect("logbook.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS logbook (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date_time TEXT,
-        callsign TEXT,
-        rst_sent TEXT,
-        rst_received TEXT,
-        band TEXT,
-        mode TEXT,
-        power TEXT,
-        grid_square TEXT,
-        distance REAL,
-        name TEXT,
-        country TEXT,
-        comment TEXT
-    )
-    """)
-    conn.commit()
-    conn.close()
 
-    # Dodanie kolumn 'grid_square' i 'distance' w przypadku istniejącej tabeli bez tych kolumn
-    conn = sqlite3.connect("logbook.db")
-    cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(logbook)")
-    columns = [col[1] for col in cursor.fetchall()]
-    if "grid_square" not in columns:
-        cursor.execute("ALTER TABLE logbook ADD COLUMN grid_square TEXT")
-    if "distance" not in columns:
-        cursor.execute("ALTER TABLE logbook ADD COLUMN distance REAL")
-    conn.commit()
-    conn.close()
 
-# Funkcja do dodawania danych do bazy
-def add_to_database(entry_data):
-    conn = sqlite3.connect("logbook.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-    INSERT INTO logbook (date_time, callsign, rst_sent, rst_received, band, mode, power, grid_square, distance, name, country, comment)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, entry_data)
-    conn.commit()
-    conn.close()
 
 # Funkcja do obliczania odległości między grid square
 def calculate_distance(my_grid, their_grid):
@@ -86,15 +40,9 @@ def calculate_distance(my_grid, their_grid):
     return int(distance)
 
 # Funkcja do usuwania danych z bazy
-def delete_from_database(callsign):
-    conn = sqlite3.connect("logbook.db")
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM logbook WHERE callsign = ?", (callsign,))
-    conn.commit()
-    conn.close()
 
-import sqlite3
-from tkinter import filedialog, messagebox
+
+
 
 # Funkcja eksportu do pliku ADIF
 def export_adif():
@@ -163,10 +111,7 @@ def export_adif():
 
 
 # Funkcja do pobierania danych z QRZ
-import requests
-from qrz import QRZ
-from tkinter import messagebox
-import tkinter as tk
+
 
 def fetch_qrz_data(callsign):
     qrz = QRZ(cfg='./settings.cfg')
@@ -227,6 +172,7 @@ def latlon_to_locator(lat, lon):
     return A + B + a + b + aa + bb
 
 # Funkcja do automatycznego wypełniania danych z QRZ
+"""
 def auto_fill_qrz():
     callsign = callsign_entry.get()
     if not callsign:
@@ -242,7 +188,7 @@ def auto_fill_qrz():
         if "locator" in data:
             grid_square_entry.delete(0, tk.END)
             grid_square_entry.insert(0, data["locator"])
-
+"""
 # Funkcja do dodawania wpisów
 def add_entry():
     their_grid = grid_square_entry.get()
@@ -330,7 +276,7 @@ def delete_entry():
         return
 
     callsign = table.item(selected_item)["values"][1]
-    delete_from_database(callsign)
+    db.delete_from_database(callsign)
     table.delete(selected_item)
     messagebox.showinfo("Usunięto", "QSO zostało usunięte!")
 
@@ -346,21 +292,6 @@ def clear_entries():
     country_entry.delete(0, tk.END)
     comment_entry.delete(0, tk.END)
 
-
-
-# Aktualizacja tabeli
-def update_table():
-    for row in table.get_children():
-        table.delete(row)
-    
-    conn = sqlite3.connect("logbook.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT date_time, callsign, rst_sent, rst_received, band, mode, power, grid_square, distance, name, country, comment FROM logbook")
-    rows = cursor.fetchall()
-    conn.close()
-
-    for row in rows:
-        table.insert("", tk.END, values=row)
 
 # Funkcja do aktualizacji zegara UTC
 def update_utc_clock(label):
@@ -443,7 +374,7 @@ comment_entry = tk.Entry(form_frame)
 comment_entry.grid(row=3, column=5)
 
 tk.Button(form_frame, text="Dodaj QSO", command=add_entry).grid(row=4, column=0, columnspan=2, pady=10)
-tk.Button(form_frame, text="Auto-wypełnianie z QRZ", command=auto_fill_qrz).grid(row=4, column=4, columnspan=2, pady=10)
+#tk.Button(form_frame, text="Auto-wypełnianie z QRZ", command=auto_fill_qrz).grid(row=4, column=4, columnspan=2, pady=10)
 tk.Button(form_frame, text="Usuń QSO", command=delete_entry).grid(row=4, column=6, columnspan=2, pady=10)
 
 # Dolna sekcja - tabela
@@ -459,7 +390,7 @@ for col in columns:
     table.column(col, width=100)
 
 # Inicjalizacja
-initialize_database()
-update_table()
+db.initialize_database()
+db.update_table()
 
 root.mainloop()
